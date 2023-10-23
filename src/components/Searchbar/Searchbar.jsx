@@ -1,49 +1,37 @@
-import './Searchbar.css';
-import React, { Component } from 'react';
+import { Component } from 'react';
+import { ButtonClear } from 'components/ButtonClear/ButtonClear';
+import css from './Searchbar.module.css';
 import PropTypes from 'prop-types';
 
-import { ImSearch } from 'react-icons/im';
-
-class Searchbar extends Component {
-  state = {
-    inputData: '',
-  };
-  onChangeInput = e => {
-    this.setState({ inputData: e.currentTarget.value.toLowerCase() });
-  };
-
-  handleSubmit = e => {
-    e.preventDefault();
-    this.props.onSubmit(this.state.inputData);
-    this.setState({ inputData: '' });
-  };
-
+export class Searchbar extends Component {
   render() {
-    const { inputData } = this.state.inputData;
+    const { onSubmit, onChange, onClickClear, query } = this.props;
     return (
-      <header className="Searchbar">
-        <form className="SearchForm" onSubmit={this.handleSubmit}>
-          <button type="submit" className="SearchForm-button">
-            <ImSearch size={25} />
+      <header className={css.searchBar}>
+        <form className={css.searchForm} onSubmit={onSubmit}>
+          <button type="submit" className={css.searchFormButton}>
+            <span className={css.searchFormButtonLabel}>Search</span>
           </button>
-
           <input
-            className="SearchForm-input"
-            name="inputData"
-            value={inputData}
-            onChange={this.onChangeInput}
+            className={css.searchFormInput}
             type="text"
+            name="query"
             autoComplete="off"
             autoFocus
             placeholder="Search images and photos"
+            onChange={onChange}
+            value={query}
           />
+          {query && <ButtonClear onClickClear={onClickClear} />}
         </form>
       </header>
     );
   }
 }
 
-export default Searchbar;
-Searchbar.propType = {
-  onSubmit: PropTypes.func.isRequired,
+Searchbar.propTypes = {
+  onSubmit: PropTypes.func,
+  onChange: PropTypes.func,
+  onClickClear: PropTypes.func,
+  query: PropTypes.string,
 };

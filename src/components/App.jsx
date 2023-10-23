@@ -1,101 +1,131 @@
-import React, { Component } from 'react';
-import Button from './Button';
-import ImageGallery from './ImageGallery';
-import './App.css';
-import { fetchImages } from './fetchImages/fetchImages';
-import Searchbar from './Searchbar';
-import Notiflix from 'notiflix';
-import Loader from './Loader';
+import { Component } from 'react';
+import { fetchImages } from 'services/api';
+import '../index.css';
 
-let page = 1;
+import { Searchbar } from './Searchbar/Searchbar';
+import { Section } from './Section/Section';
+import { ImageGallery } from './ImageGallery/ImageGallery';
+import { ButtonLoadMore } from './ButtonLoadMore/ButtonLoadMore';
+import { Modal } from './Modal/Modal';
+import { Loader } from './Loader/Loader';
 
-class App extends Component {
+export class App extends Component {
   state = {
-    inputData: '',
-    items: [],
-
-    status: 'idle',
-    totalHits: 0,
+    query: '',
+    page: 1,
+    images: [],
+    isLoading: false,
+    lastPage: 1,
+    error: null,
+    showModal: false,
+    largeImageURL: '',
+    noResults: false,
   };
 
-  handleSubmit = async inputData => {
-    page = 1;
-    if (inputData.trim() === '') {
-      Notiflix.Notify.info('You cannot search by empty field, try again.');
-      return;
-    } else {
-      try {
-        this.setState({ status: 'pending' });
-        const { totalHits, hits } = await fetchImages(inputData, page);
-        if (hits.length < 1) {
-          this.setState({ status: 'idle' });
-          Notiflix.Notify.failure(
-            'Sorry, there are no images matching your search query. Please try again.'
-          );
-        } else {
-          this.setState({
-            items: hits,
-            inputData,
-            totalHits: totalHits,
-            status: 'resolved',
-          });
-        }
-      } catch (error) {
-        this.setState({ status: 'rejected' });
-      }
-    }
+  handleChange = event => {
+    this.setState({ query: event.target.value });
   };
-  onNextPage = async () => {
-    this.setState({ status: 'pending' });
 
+  onClickClear = () => {
+    this.setState({ query: '' });
+  };
+
+  fetchImagesByQuery = async searchQuery => {
+    this.setState({ isLoading: true, error: null, noResults: false });
     try {
-      const { hits } = await fetchImages(this.state.inputData, (page += 1));
+      const response = await fetchImages(searchQuery, this.state.page);
       this.setState(prevState => ({
-        items: [...prevState.items, ...hits],
-        status: 'resolved',
+        images: [...prevState.images, ...response.hits],
+        lastPage: Math.ceil(response.totalHits / 12),
       }));
+      if (response.totalHits === 0) {
+        this.setState({ noResults: true });
+      }
     } catch (error) {
-      this.setState({ status: 'rejected' });
+      this.setState({ error });
+    } finally {
+      this.setState({ isLoading: false });
     }
   };
+
+  handleSubmit = event => {
+    event.preventDefault();
+    if (this.state.query === '') {
+      alert('Please enter your query');
+      return;
+    }
+    this.setState({ images: [], page: 1 }, () => {
+      this.fetchImagesByQuery(this.state.query);
+    });
+  };
+
+  handleLoadMore = () => {
+    this.setState({ page: this.state.page + 1 }, () => {
+      this.fetchImagesByQuery(this.state.query);
+    });
+  };
+
+  onImageClick = largeImageURL => {
+    this.setState({ showModal: true, largeImageURL: largeImageURL });
+  };
+
+  onClose = () => {
+    this.setState({ showModal: false, largeImageURL: '' });
+  };
+
   render() {
-    const { totalHits, status, items } = this.state;
-    if (status === 'idle') {
-      return (
-        <div className="App">
-          <Searchbar onSubmit={this.handleSubmit} />
-        </div>
-      );
-    }
-    if (status === 'pending') {
-      return (
-        <div className="App">
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ImageGallery page={page} items={this.state.items} />
-          <Loader />
-          {totalHits > 12 && <Button onClick={this.onNextPage} />}
-        </div>
-      );
-    }
-    if (status === 'rejected') {
-      return (
-        <div className="App">
-          <Searchbar onSubmit={this.handleSubmit} />
-          <p>Something wrong, try later</p>
-        </div>
-      );
-    }
-    if (status === 'resolved') {
-      return (
-        <div className="App">
-          <Searchbar onSubmit={this.handleSubmit} />
-          <ImageGallery page={page} items={this.state.items} />
-          {totalHits > 12 && totalHits > items.length && (
-            <Button onClick={this.onNextPage} />
+    const {
+      page,
+      images,
+      isLoading,
+      lastPage,
+      error,
+      showModal,
+      largeImageURL,
+      noResults,
+    } = this.state;
+
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1fr',
+          gridGap: 16,
+          paddingBottom: 24,
+        }}
+      >
+        <Searchbar
+          onSubmit={this.handleSubmit}
+          onChange={this.handleChange}
+          onClickClear={this.onClickClear}
+          query={this.state.query}
+        />
+        <Section>
+          {isLoading && <Loader />}
+          {noResults && (
+            <p className="alertStyle">
+              No images found. Please try another query.
+            </p>
           )}
-        </div>
-      );
-    }
+          <ImageGallery images={images} onImageClick={this.onImageClick} />
+          {error && (
+            <p className="alertStyle">
+              Whoops, something went wrong: {error.message}
+            </p>
+          )}
+        </Section>
+        {page < lastPage && !isLoading && !error ? (
+          <ButtonLoadMore
+            label={'Load more'}
+            handleLoadMore={this.handleLoadMore}
+          />
+        ) : (
+          <div style={{ height: 40 }}></div>
+        )}
+        {showModal && (
+          <Modal onClose={this.onClose} largeImageURL={largeImageURL} />
+        )}
+      </div>
+    );
   }
 }
-export default App;
