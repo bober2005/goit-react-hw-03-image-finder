@@ -1,129 +1,114 @@
 import { Component } from 'react';
-import { fetchImages } from 'services/api';
-import '../index.css';
-
-import { Searchbar } from './Searchbar/Searchbar';
-import { Section } from './Section/Section';
-import { ImageGallery } from './ImageGallery/ImageGallery';
-import { ButtonLoadMore } from './ButtonLoadMore/ButtonLoadMore';
-import { Modal } from './Modal/Modal';
-import { Loader } from './Loader/Loader';
+import css from './App.module.css';
+import Searchbar from './Searchbar/Searchbar';
+import Loader from './Loader/Loader';
+import Modal from './Modal/Modal';
+import { fetchByName, pagination } from '../services/pixabay-api';
+import ImageGallery from './ImageGallery/ImageGallery';
+import Button from './Button/Button';
 
 export class App extends Component {
   state = {
-    query: '',
-    page: 1,
-    images: [],
-    isLoading: false,
-    lastPage: 1,
-    error: null,
+    foundImages: null,
+    searchItem: '',
     showModal: false,
-    largeImageURL: '',
-    noResults: false,
+    showLoader: false,
+    nextPage: 1,
+    largerImage: null,
+    alt: null,
+    error: null,
+    status: 'idle',
+    showButton: true,
+    total: 0,
   };
 
-  handleChange = event => {
-    this.setState({ query: event.target.value });
-  };
+  componentDidUpdate(prevProps, prevState) {
+    const prevSearch = prevState.searchItem;
+    const nextSearch = this.state.searchItem;
 
-  onClickClear = () => {
-    this.setState({ query: '' });
-  };
+    if (prevSearch !== nextSearch) {
+      this.setState({ status: 'pending', nextPage: 2 });
 
-  fetchImagesByQuery = async searchQuery => {
-    this.setState({ isLoading: true, error: null, noResults: false });
-    try {
-      const response = await fetchImages(searchQuery, this.state.page);
-      this.setState(prevState => ({
-        images: [...prevState.images, ...response.hits],
-        lastPage: Math.ceil(response.totalHits / 12),
-      }));
-      if (response.totalHits === 0) {
-        this.setState({ noResults: true });
-      }
-    } catch (error) {
-      this.setState({ error });
-    } finally {
-      this.setState({ isLoading: false });
+      fetchByName(nextSearch)
+        .then(foundImages => {
+          if (foundImages.total !== 0) {
+            this.setState({
+              foundImages: foundImages.hits,
+              status: 'resolved',
+              error: null,
+              total: foundImages.total,
+              showButton: true,
+            });
+          } else {
+            this.setState({
+              status: 'rejected',
+              error: new Error(`Cannot find photos for ${nextSearch} category`),
+            });
+          }
+        })
+        .catch(error => this.setState({ error, status: 'rejected' }));
     }
+  }
+
+
+  setSearchItem = data => {
+    this.setState({ searchItem: data });
   };
 
-  handleSubmit = event => {
-    event.preventDefault();
-    if (this.state.query === '') {
-      alert('Please enter your query');
-      return;
-    }
-    this.setState({ images: [], page: 1 }, () => {
-      this.fetchImagesByQuery(this.state.query);
+  toggleModal = () => {
+    const { showModal } = this.state;
+    this.setState({ showModal: !showModal });
+  };
+
+  modalImage = ({ alt, largerImage }) => {
+    this.setState({
+      largerImage: largerImage,
+      alt: alt,
     });
   };
 
-  handleLoadMore = () => {
-    this.setState({ page: this.state.page + 1 }, () => {
-      this.fetchImagesByQuery(this.state.query);
-    });
-  };
+  onLoadMore = () => {
+    const { searchItem, nextPage } = this.state;
 
-  onImageClick = largeImageURL => {
-    this.setState({ showModal: true, largeImageURL: largeImageURL });
-  };
-
-  onClose = () => {
-    this.setState({ showModal: false, largeImageURL: '' });
+    pagination(searchItem, nextPage)
+      .then(newImages => {
+        this.setState(({ foundImages, nextPage }) => ({
+          foundImages: [...foundImages, ...newImages.hits],
+          status: 'resolved',
+          nextPage: nextPage + 1,
+        }));
+        if (this.state.foundImages.length + 12 >= this.state.total) {
+          this.setState({ showButton: false });
+        }
+      })
+      .catch(error => this.setState({ error, status: 'rejected' }));
   };
 
   render() {
-    const {
-      page,
-      images,
-      isLoading,
-      lastPage,
-      error,
-      showModal,
-      largeImageURL,
-      noResults,
-    } = this.state;
-
+    const { showModal, foundImages, largerImage, alt, error, status, showButton } =
+      this.state;
     return (
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '1fr',
-          gridGap: 16,
-          paddingBottom: 24,
-        }}
-      >
-        <Searchbar
-          onSubmit={this.handleSubmit}
-          onChange={this.handleChange}
-          onClickClear={this.onClickClear}
-          query={this.state.query}
-        />
-        <Section>
-          {isLoading && <Loader />}
-          {noResults && (
-            <p className="alertStyle">
-              No images found. Please try another query.
-            </p>
-          )}
-          <ImageGallery images={images} onImageClick={this.onImageClick} />
-          {error && (
-            <p className="alertStyle">
-              Whoops, something went wrong: {error.message}
-            </p>
-          )}
-        </Section>
-        {page < lastPage && !isLoading && !error ? (
-          <ButtonLoadMore
-            label={'Load more'}
-            handleLoadMore={this.handleLoadMore}
+      <div className={css.app}>
+        <Searchbar onSubmit={this.setSearchItem} />
+        {status === 'pending' && <Loader />}
+        {status === 'resolved' && (
+          <ImageGallery
+            images={foundImages}
+            openModal={this.toggleModal}
+            modalImage={this.modalImage}
           />
-        ) : (
-          <div style={{ height: 40 }}></div>
         )}
+        {status === 'rejected' && (
+          <div className={css.error}>
+            <h1>{error.message}</h1>
+          </div>
+        )}
+        {status === 'resolved' && showButton && <Button onClick={this.onLoadMore} />}
         {showModal && (
-          <Modal onClose={this.onClose} largeImageURL={largeImageURL} />
+          <Modal
+            onClose={this.toggleModal}
+            children={<img src={largerImage} alt={alt} />}
+          />
         )}
       </div>
     );

@@ -1,28 +1,40 @@
 import { Component } from 'react';
-import { ButtonClear } from 'components/ButtonClear/ButtonClear';
 import css from './Searchbar.module.css';
 import PropTypes from 'prop-types';
 
-export class Searchbar extends Component {
+export default class Searchbar extends Component {
+  state = {
+    itemToSearch: '',
+  };
+  onSubmit = e => {
+    e.preventDefault();
+    this.props.onSubmit(this.state.itemToSearch);
+  };
+  onChange = e => {
+    this.setState({ itemToSearch: e.target.value });
+  };
+  reset = () => {
+    this.setState({ itemToSearch: '' });
+  };
+
   render() {
-    const { onSubmit, onChange, onClickClear, query } = this.props;
     return (
-      <header className={css.searchBar}>
-        <form className={css.searchForm} onSubmit={onSubmit}>
-          <button type="submit" className={css.searchFormButton}>
-            <span className={css.searchFormButtonLabel}>Search</span>
+      <header className={css.Searchbar}>
+        <form className={css.SearchForm} onSubmit={this.onSubmit}>
+          <button type="submit" className={css.SearchFormButton}>
+            <span className={css.SearchFormButtonLabel}>Search</span>
           </button>
+
           <input
-            className={css.searchFormInput}
+            onChange={this.onChange}
+            onClick={this.reset}
+            className={css.SearchFormInput}
             type="text"
-            name="query"
             autoComplete="off"
             autoFocus
             placeholder="Search images and photos"
-            onChange={onChange}
-            value={query}
+            value={this.state.itemToSearch}
           />
-          {query && <ButtonClear onClickClear={onClickClear} />}
         </form>
       </header>
     );
@@ -30,8 +42,5 @@ export class Searchbar extends Component {
 }
 
 Searchbar.propTypes = {
-  onSubmit: PropTypes.func,
-  onChange: PropTypes.func,
-  onClickClear: PropTypes.func,
-  query: PropTypes.string,
+  onSubmit: PropTypes.func.isRequired,
 };

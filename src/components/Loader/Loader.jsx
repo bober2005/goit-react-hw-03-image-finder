@@ -1,29 +1,40 @@
-import { Component } from 'react';
-import { Dna } from 'react-loader-spinner';
+import { Oval } from 'react-loader-spinner';
+import css from './Loader.module.css'
+import PropTypes from 'prop-types';
 
-export class Loader extends Component {
-  render() {
-    return (
-      <Dna
-        visible={true}
-        height="80"
-        width="180"
-        ariaLabel="dna-loading"
-        wrapperStyle={{
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100vh',
-          margin: '0 auto',
-          position: 'fixed',
-          top: '0',
-          left: '0',
-          right: '0',
-          bottom: '0',
-          zIndex: '9999',
-        }}
-        wrapperClass="dna-wrapper"
-      />
-    );
-  }
-}
+const Loader = () => {
+  return (
+    <div className={css.loader}>
+      {
+        <Oval
+          height={120}
+          width={120}
+          color="grey"
+          wrapperStyle={{}}
+          wrapperClass=""
+          visible={true}
+          ariaLabel="oval-loading"
+          secondaryColor="grey"
+          strokeWidth={2}
+          strokeWidthSecondary={2}
+        />
+      }
+    </div>
+  );
+};
+export default Loader;
+
+Oval.propTypes = {
+  ariaLabel: PropTypes.string.isRequired,
+  secondaryColor: PropTypes.string.isRequired,
+  color: PropTypes.string.isRequired,
+  wrapperClass: PropTypes.string.isRequired,
+  height: PropTypes.number.isRequired,
+  width: PropTypes.number.isRequired,
+  strokeWidth: PropTypes.number.isRequired,
+  strokeWidthSecondary: PropTypes.number.isRequired,
+  visible: PropTypes.bool.isRequired,
+  wrapperStyle: PropTypes.object.isRequired,
+};
+
+
