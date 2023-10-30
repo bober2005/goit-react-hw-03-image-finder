@@ -1,18 +1,11 @@
-import { Component } from 'react';
-import css from './Button.module.css'
-import PropTypes from 'prop-types';
+import css from './Button.module.css'; // імпортуємо стилі
 
-
-export default class Button extends Component {
-  render() {
-    return (
-      <button type="button" className={css.Button} onClick={this.props.onClick}>
-        Load More
-      </button>
-    );
-  }
-}
-
-Button.propTypes = {
-  onClick: PropTypes.func.isRequired,
+// Функціональний компонент, який відповідає за кнопку "Load more".
+export const Button = ({ clickLoad }) => {
+  return (
+    <button onClick={clickLoad} className={css.Button} type="button">
+      Load more
+    </button>
+  );
 };
+
