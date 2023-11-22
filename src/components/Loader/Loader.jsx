@@ -1,21 +1,17 @@
-import { ColorRing } from 'react-loader-spinner'; // анімований спінер з бібліотеки 
+import { ColorRing } from 'react-loader-spinner';
+import css from './Loader.module.css';
 
-// використовується в компонентах, де потрібно показати що дані завантажуються
+
 export const Loader = () => {
-    return (
+  return (
+    <div className={css.loaderWrapper}>
       <ColorRing
         visible={true}
-        height="80"
-        width="80"
+        height="120"
+        width="120"
         ariaLabel="blocks-loading"
-        wrapperStyle={{
-          display: 'block',
-          marginTop: 20,
-          marginLeft: 'auto',
-          marginRight: 'auto',
-        }}
-        wrapperClass="blocks-wrapper"
         colors={['#e15b64', '#f47e60', '#f8b26a', '#abbd81', '#849b87']}
       />
-    );
-}
+    </div>
+  );
+};

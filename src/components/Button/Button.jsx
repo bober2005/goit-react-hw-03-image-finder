@@ -1,11 +1,9 @@
-import css from './Button.module.css'; // імпортуємо стилі
+import css from './Button.module.css';
 
-// Функціональний компонент, який відповідає за кнопку "Load more".
-export const Button = ({ clickLoad }) => {
+export const Button = ({ onLoadMore }) => {
   return (
-    <button onClick={clickLoad} className={css.Button} type="button">
+    <button className={css.button} onClick={onLoadMore}>
       Load more
     </button>
   );
 };
-
